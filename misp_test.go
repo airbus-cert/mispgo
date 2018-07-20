@@ -45,28 +45,22 @@ func testAuthentication(t *testing.T, r *http.Request) {
 	testHeader(t, r, "Authorization", client.APIKey)
 }
 
+type attributeRequest struct {
+	Request AttributeQuery
+}
+
 func Test_SearchAttribute(t *testing.T) {
 	setup()
 
-	/*
-		testcases := []struct {
-			got  interface{}
-			want interface{}
-		}{
-			{
-				AttributeQuery{Value: "68b329da9893e34099c7d8ad5cb9c940"},
-				{},
-			},
-		}
-	*/
-	want := &AttributeQuery{Value: "68b329da9893e34099c7d8ad5cb9c940"}
+	attrReq := &AttributeQuery{Value: "68b329da9893e34099c7d8ad5cb9c940"}
+	want := attributeRequest{Request: *attrReq}
 
 	mux.HandleFunc("/attributes/restSearch/json/",
 		func(w http.ResponseWriter, r *http.Request) {
 			testMethod(t, r, "POST")
 			d := json.NewDecoder(r.Body)
 
-			var got AttributeQuery
+			var got attributeRequest
 			if err := d.Decode(&got); err != nil {
 				t.Errorf("Cannot decode json SearchQuery request: %s", err)
 			}
@@ -75,12 +69,53 @@ func Test_SearchAttribute(t *testing.T) {
 				t.Errorf("SearchAttribute returned %+v, want %+v", got, want)
 			}
 
-			fmt.Fprint(w, `{"id":1}`)
+			fmt.Fprint(w, `{"response":{"Attribute":[{"id":"610744","event_id":"6871","category":"Payload delivery","type":"filename|md5","to_ids":true,"uuid":"58b98766-73cc-437f-a814-4a9a0a3ac101","timestamp":"1488553830","distribution":"5","comment":"my comment 1","sharing_group_id":"0","deleted":false,"disable_correlation":true,"object_id":"0","object_relation":null,"value":"1.bat|68b329da9893e34099c7d8ad5cb9c940"},{"id":"610783","event_id":"6871","category":"Artifacts dropped","type":"md5","to_ids":true,"uuid":"58b98dc1-b698-4172-b274-4ae30a3ac101","timestamp":"1488557887","distribution":"5","comment":"1.bat","sharing_group_id":"0","deleted":false,"disable_correlation":false,"object_id":"0","object_relation":null,"value":"68b329da9893e34099c7d8ad5cb9c940"}]}}`)
 		})
 
-	matches, err := client.SearchAttribute(want)
+	matches, err := client.SearchAttribute(attrReq)
 	if err != nil {
 		t.Errorf("SearchAttribute returned error: %v", err)
+	}
+
+	attributesWanted := []Attribute{
+		{
+			Comment:            "my comment 1",
+			ID:                 "610744",
+			EventID:            "6871",
+			Category:           "Payload delivery",
+			Type:               "filename|md5",
+			ToIDS:              true,
+			UUID:               "58b98766-73cc-437f-a814-4a9a0a3ac101",
+			Timestamp:          "1488553830",
+			Distribution:       "5",
+			SharingGroupID:     "0",
+			Deleted:            false,
+			DisableCorrelation: true,
+			ObjectID:           "0",
+			ObjectRelation:     "",
+			Value:              "1.bat|68b329da9893e34099c7d8ad5cb9c940",
+		},
+		{
+			Comment:            "1.bat",
+			ID:                 "610783",
+			EventID:            "6871",
+			Category:           "Artifacts dropped",
+			Type:               "md5",
+			ToIDS:              true,
+			UUID:               "58b98dc1-b698-4172-b274-4ae30a3ac101",
+			Timestamp:          "1488557887",
+			Distribution:       "5",
+			SharingGroupID:     "0",
+			Deleted:            false,
+			DisableCorrelation: false,
+			ObjectID:           "0",
+			ObjectRelation:     "",
+			Value:              "68b329da9893e34099c7d8ad5cb9c940",
+		},
+	}
+
+	if !reflect.DeepEqual(matches, attributesWanted) {
+		t.Errorf("Search results were different than expected: got %v, wanted %v", matches, attributesWanted)
 	}
 
 }
@@ -95,7 +130,7 @@ func Test_UploadSample(t *testing.T) {
 		Distribution: 2,
 		EventID:      3,
 		Comment:      "foobar",
-		ToID:         false,
+		ToIDS:        false,
 		Category:     "toto",
 		Info:         "baz",
 	}

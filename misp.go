@@ -32,17 +32,17 @@ type SampleUpload struct {
 	Distribution int          `json:"distribution,omitempty"`
 	Comment      string       `json:"comment,omitempty"` // comment field of any attribute created
 	EventID      int          `json:"event_id,omitempty"`
-	ToID         bool         `json:"to_id,omitempty"`
+	ToIDS        bool         `json:"to_ids,omitempty"`
 	Category     string       `json:"category,omitempty"`
 	Info         string       `json:"info,omitempty"` // event info field if no event ID supplied
 }
 
 // XResponse ... XXX
 type XResponse struct {
-	Name    string `json:"name"`
-	Message string `json:"message"`
-	URL     string `json:"url"`
-	ID      int    `json:"id"`
+	Name    string `json:"name,omitempty"`
+	Message string `json:"message,omitempty"`
+	URL     string `json:"url,omitempty"`
+	ID      int    `json:"id,omitempty"`
 }
 
 // Response is the outer layer of each MISP response
@@ -52,24 +52,27 @@ type Response struct {
 
 // InnerResponse ...
 type InnerResponse struct {
-	Attribute []Attribute `json:"Attribute"`
+	Attribute []Attribute `json:"Attribute,omitempty"`
 }
 
 // Attribute ...
 type Attribute struct {
-	Comment            string `json:"comment"`
-	ID                 string `json:"id"`
-	EventID            string `json:"event_id"`
-	ObjectID           string `json:"object_id"`
-	ObjectRelation     string `json:"object_relation"`
-	DisableCorrelation bool   `json:"disable_correlation"`
-	Filename           string `json:"filename"`
-	Type               string `json:"type"`
-	Timestamp          string `json:"timestamp"`
-	Value              string `json:"value"`
-	SharingGroupID     string `json:"sharing_group_id"`
-	Category           string `json:"category"`
-	UUID               string `json:"uuid"`
+	Comment            string `json:"comment,omitempty"`
+	ID                 string `json:"id,omitempty"`
+	EventID            string `json:"event_id,omitempty"`
+	Distribution       string `json:"distribution,omitempty"`
+	ObjectID           string `json:"object_id,omitempty"`
+	ObjectRelation     string `json:"object_relation,omitempty"`
+	DisableCorrelation bool   `json:"disable_correlation,omitempty"`
+	Deleted            bool   `json:"deleted,omitempty"`
+	Filename           string `json:"filename,omitempty"`
+	Type               string `json:"type,omitempty"`
+	Timestamp          string `json:"timestamp,omitempty"`
+	Value              string `json:"value,omitempty"`
+	SharingGroupID     string `json:"sharing_group_id,omitempty"`
+	Category           string `json:"category,omitempty"`
+	UUID               string `json:"uuid,omitempty"`
+	ToIDS              bool   `json:"to_ids,omitempty"`
 }
 
 // AttributeQuery ...
@@ -154,8 +157,6 @@ func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("%v\n", resp)
 
 	return resp.Response.Attribute, nil
 }
