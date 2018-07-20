@@ -37,14 +37,42 @@ type SampleUpload struct {
 	Info         string       `json:"info,omitempty"` // event info field if no event ID supplied
 }
 
-// Response ... XXX
-type Response struct {
+// XResponse ... XXX
+type XResponse struct {
 	Name    string `json:"name"`
 	Message string `json:"message"`
 	URL     string `json:"url"`
 	ID      int    `json:"id"`
 }
 
+// Response is the outer layer of each MISP response
+type Response struct {
+	Response InnerResponse `json:"response"`
+}
+
+// InnerResponse ...
+type InnerResponse struct {
+	Attribute []Attribute `json:"Attribute"`
+}
+
+// Attribute ...
+type Attribute struct {
+	Comment            string `json:"comment"`
+	ID                 string `json:"id"`
+	EventID            string `json:"event_id"`
+	ObjectID           string `json:"object_id"`
+	ObjectRelation     string `json:"object_relation"`
+	DisableCorrelation bool   `json:"disable_correlation"`
+	Filename           string `json:"filename"`
+	Type               string `json:"type"`
+	Timestamp          string `json:"timestamp"`
+	Value              string `json:"value"`
+	SharingGroupID     string `json:"sharing_group_id"`
+	Category           string `json:"category"`
+	UUID               string `json:"uuid"`
+}
+
+// AttributeQuery ...
 type AttributeQuery struct {
 	// Search for the given value in the attributes' value field.
 	Value string `json:"value,omitempty"`
@@ -120,8 +148,16 @@ func (client *Client) Post(path string, req interface{}) (*Response, error) {
 	return client.Do("POST", path, req)
 }
 
-func (client *Client) SearchAttribute(q *AttributeQuery) (*Response, error) {
-	return client.Post("/attributes/restSearch/json/", Request{Request: q})
+// SearchAttribute ...
+func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
+	resp, err := client.Post("/attributes/restSearch/json/", Request{Request: q})
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%v\n", resp)
+
+	return resp.Response.Attribute, nil
 }
 
 // Do set the HTTP headers, encode the data in the JSON format and send it to the
@@ -156,7 +192,6 @@ func (client *Client) Do(method, path string, req interface{}) (*Response, error
 	if err = decoder.Decode(&response); err != nil {
 		return nil, err
 	}
-	fmt.Println(response)
 
 	return &response, nil
 }
