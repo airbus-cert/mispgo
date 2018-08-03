@@ -49,6 +49,44 @@ type attributeRequest struct {
 	Request AttributeQuery
 }
 
+func Test_AddSightingNotFound(t *testing.T) {
+	setup()
+
+	mux.HandleFunc("/sightings/add/",
+		func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "POST")
+			w.WriteHeader(403)
+			fmt.Fprint(w,
+				`{
+    "name": "Could not add Sighting",
+    "message": "Could not add Sighting",
+    "url": "\/sightings\/add",
+    "errors": "No valid attributes found that match the criteria."
+}`)
+		})
+	_, err := client.AddSighting(&Sighting{Value: "NOT FOUND"})
+	if err == nil {
+		t.Errorf("AddSighting() did not returned an error, I was expecting status=403")
+	}
+
+}
+
+func Test_AddSighting(t *testing.T) {
+	setup()
+	mux.HandleFunc("/sightings/add/",
+		func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "POST")
+
+			fmt.Fprint(w, `{"name": "2 sightings successfuly added.", "message": "2 sightings successfuly added.", "url": "\/sightings\/add"}`)
+		})
+
+	_, err := client.AddSighting(&Sighting{Value: "foobar.com"})
+	if err != nil {
+		t.Errorf("AddSighting() failed: %v", err)
+	}
+
+}
+
 func Test_SearchAttribute(t *testing.T) {
 	setup()
 

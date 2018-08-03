@@ -15,6 +15,15 @@ type Client struct {
 	APIKey  string
 }
 
+// Sighting ... XXX
+type Sighting struct {
+	ID        string   `json:"id,omitempty"`
+	UUID      string   `json:"uuid,omitempty"`
+	Value     string   `json:"value,omitempty"`
+	Values    []string `json:"values,omitempty"`
+	Timestamp int      `json:"timestamp,omitempty"`
+}
+
 // Request ... XXX
 type Request struct {
 	Request interface{} `json:"request"`
@@ -42,6 +51,7 @@ type XResponse struct {
 	Name    string `json:"name,omitempty"`
 	Message string `json:"message,omitempty"`
 	URL     string `json:"url,omitempty"`
+	Errors  string `json:"errors,omitempty"`
 	ID      int    `json:"id,omitempty"`
 }
 
@@ -127,6 +137,16 @@ type AttributeQuery struct {
 func (client *Client) Search() {
 	// client.Do("/")
 
+}
+
+// AddSighting ... XXX
+func (client *Client) AddSighting(s *Sighting) (*Response, error) {
+	resp, err := client.Post("/sightings/add/", Request{Request: s})
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
 }
 
 // UploadSample ... XXX
