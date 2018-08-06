@@ -141,51 +141,74 @@ func (client *Client) Search() {
 
 // AddSighting ... XXX
 func (client *Client) AddSighting(s *Sighting) (*Response, error) {
-	resp, err := client.Post("/sightings/add/", Request{Request: s})
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
-}
-
-// UploadSample ... XXX
-func (client *Client) UploadSample(sample *SampleUpload) (*Response, error) {
-	req := &Request{Request: sample}
-
-	resp, err := client.Post("/events/upload_sample/", req)
+	httpResp, err := client.Post("/sightings/add/", Request{Request: s})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, nil
+	var response Response
+	decoder := json.NewDecoder(httpResp.Body)
+	if err = decoder.Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+// UploadResponse ... XXX
+type UploadResponse struct {
+	ID string
+}
+
+// UploadSample ... XXX
+func (client *Client) UploadSample(sample *SampleUpload) (*UploadResponse, error) {
+	req := &Request{Request: sample}
+
+	httpResp, err := client.Post("/events/upload_sample/", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var response UploadResponse
+	decoder := json.NewDecoder(httpResp.Body)
+	if err = decoder.Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
 
 // Get is a wrapper to Do()
-func (client *Client) Get(path string, req interface{}) (*Response, error) {
+func (client *Client) Get(path string, req interface{}) (*http.Response, error) {
 	return client.Do("GET", path, req)
 }
 
 // Post is a wrapper to Do()
-func (client *Client) Post(path string, req interface{}) (*Response, error) {
+func (client *Client) Post(path string, req interface{}) (*http.Response, error) {
 	return client.Do("POST", path, req)
 }
 
 // SearchAttribute ...
 func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
-	resp, err := client.Post("/attributes/restSearch/json/", Request{Request: q})
+	httpResp, err := client.Post("/attributes/restSearch/json/", Request{Request: q})
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Response.Attribute, nil
+	var response Response
+	decoder := json.NewDecoder(httpResp.Body)
+	if err = decoder.Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return response.Response.Attribute, nil
 }
 
 // Do set the HTTP headers, encode the data in the JSON format and send it to the
 // server.
 // It checks the HTTP response by looking at the status code and decodes the JSON structure
 // to a Response structure.
-func (client *Client) Do(method, path string, req interface{}) (*Response, error) {
+func (client *Client) Do(method, path string, req interface{}) (*http.Response, error) {
 	jsonBuf, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -205,14 +228,8 @@ func (client *Client) Do(method, path string, req interface{}) (*Response, error
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(httpReq)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("MISP server replied status=%d", resp.StatusCode)
+		return resp, fmt.Errorf("MISP server replied status=%d", resp.StatusCode)
 	}
 
-	var response Response
-	decoder := json.NewDecoder(resp.Body)
-	if err = decoder.Decode(&response); err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return resp, nil
 }
