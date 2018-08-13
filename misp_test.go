@@ -87,6 +87,21 @@ func Test_AddSighting(t *testing.T) {
 
 }
 
+func Test_SearchAttribute_NoResult(t *testing.T) {
+	setup()
+
+	attrReq := &AttributeQuery{Value: "68b329da9893e34099c7d8ad5cb9c940"}
+	mux.HandleFunc("/attributes/restSearch/json/",
+		func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprint(w, `{"response":[]}`)
+		})
+
+	_, err := client.SearchAttribute(attrReq)
+	if err != nil {
+		t.Errorf("SearchAttribute returned error: %v", err)
+	}
+}
+
 func Test_SearchAttribute(t *testing.T) {
 	setup()
 
@@ -158,6 +173,34 @@ func Test_SearchAttribute(t *testing.T) {
 
 }
 
+func Test_UploadSample_Failed(t *testing.T) {
+	setup()
+
+	s := &SampleUpload{
+		Files: []SampleFile{
+			{Filename: "foo", Data: "bar"},
+		},
+		Distribution: 5,
+		EventID:      3,
+		Comment:      "foobar",
+		ToIDS:        false,
+		Category:     "toto",
+		Info:         "baz",
+	}
+
+	mux.HandleFunc("/events/upload_sample/",
+		func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "POST")
+			fmt.Fprintf(w, `{"url": "/events/upload_sample", "message": "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.", "errors": ["Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."], "name": "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."}`)
+
+		})
+
+	_, err := client.UploadSample(s)
+	if err == nil {
+		t.Errorf("UploadSample returned error: %v", err)
+	}
+}
+
 func Test_UploadSample(t *testing.T) {
 	setup()
 
@@ -191,7 +234,7 @@ func Test_UploadSample(t *testing.T) {
 				t.Errorf("UploadSample returned %+v, want %+v", got, want)
 			}
 
-			fmt.Fprint(w, `{"id":1}`)
+			fmt.Fprint(w, `{"url": "/events/view/11169", "message": "Success, saved all attributes.", "name": "Success", "id": "11169"}`)
 		})
 
 	_, err := client.UploadSample(s)

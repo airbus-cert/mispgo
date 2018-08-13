@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 // Client ... XXX
@@ -57,11 +58,14 @@ type XResponse struct {
 
 // Response is the outer layer of each MISP response
 type Response struct {
-	Response InnerResponse `json:"response"`
 }
 
-// InnerResponse ...
-type InnerResponse struct {
+type searchOuterResponse struct {
+	// Response can be an empty array or an object
+	Response json.RawMessage `json:"response"`
+}
+
+type searchInnerResponse struct {
 	Attribute []Attribute `json:"Attribute,omitempty"`
 }
 
@@ -157,7 +161,12 @@ func (client *Client) AddSighting(s *Sighting) (*Response, error) {
 
 // UploadResponse ... XXX
 type UploadResponse struct {
-	ID string
+	ID      int      `json:"nononoid"`
+	RawID   string   `json:"id"`
+	URL     string   `json:"url"`
+	Message string   `json:"message"`
+	Name    string   `json:"name"`
+	Errors  []string `json:"errors"`
 }
 
 // UploadSample ... XXX
@@ -169,13 +178,23 @@ func (client *Client) UploadSample(sample *SampleUpload) (*UploadResponse, error
 		return nil, err
 	}
 
-	var response UploadResponse
+	var resp UploadResponse
 	decoder := json.NewDecoder(httpResp.Body)
-	if err = decoder.Decode(&response); err != nil {
-		return nil, err
+	if err = decoder.Decode(&resp); err != nil {
+		return nil, fmt.Errorf("Could not unmarshal response: %s", err)
 	}
 
-	return &response, nil
+	if len(resp.Errors) > 0 {
+		return nil, fmt.Errorf("MISP returned an error: %v", resp)
+	}
+
+	id, err := strconv.ParseInt(resp.RawID, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	resp.ID = int(id)
+
+	return &resp, nil
 }
 
 // Get is a wrapper to Do()
@@ -195,13 +214,24 @@ func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
 		return nil, err
 	}
 
-	var response Response
+	var outer searchOuterResponse
+	// tee := io.TeeReader(httpResp.Body, os.Stdout)
+	// decoder := json.NewDecoder(tee)
 	decoder := json.NewDecoder(httpResp.Body)
-	if err = decoder.Decode(&response); err != nil {
-		return nil, err
+	if err = decoder.Decode(&outer); err != nil {
+		return nil, fmt.Errorf("Could not unmarshal response: %s", err)
 	}
 
-	return response.Response.Attribute, nil
+	var inner searchInnerResponse
+	if err := json.Unmarshal(outer.Response, &inner); err != nil {
+		var empty []string
+		if err := json.Unmarshal(outer.Response, &empty); err != nil {
+			return nil, fmt.Errorf("Inner structure has unknown format")
+		}
+		return []Attribute{}, nil
+	}
+
+	return inner.Attribute, nil
 }
 
 // Do set the HTTP headers, encode the data in the JSON format and send it to the
@@ -227,6 +257,10 @@ func (client *Client) Do(method, path string, req interface{}) (*http.Response, 
 
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return resp, fmt.Errorf("MISP server replied status=%d", resp.StatusCode)
 	}
