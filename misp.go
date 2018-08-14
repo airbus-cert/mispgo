@@ -143,6 +143,22 @@ func (client *Client) Search() {
 
 }
 
+// PublishEvent ... XXX
+func (client *Client) PublishEvent(eventID string, email bool) (*Response, error) {
+	var path string
+	if email {
+		path = "/events/alert/%s"
+	} else {
+		path = "/events/publish/%s"
+	}
+
+	path = fmt.Sprintf(path, eventID)
+
+	_, err := client.Post(path, nil)
+
+	return nil, err
+}
+
 // AddSighting ... XXX
 func (client *Client) AddSighting(s *Sighting) (*Response, error) {
 	httpResp, err := client.Post("/sightings/add/", Request{Request: s})
@@ -240,14 +256,17 @@ func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
 // It checks the HTTP response by looking at the status code and decodes the JSON structure
 // to a Response structure.
 func (client *Client) Do(method, path string, req interface{}) (*http.Response, error) {
-	jsonBuf, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
+	httpReq := &http.Request{}
+
+	if req != nil {
+		jsonBuf, err := json.Marshal(req)
+		if err != nil {
+			return nil, err
+		}
+		httpReq.Body = ioutil.NopCloser(bytes.NewReader(jsonBuf))
 	}
 
-	httpReq := &http.Request{}
 	httpReq.Method = method
-	httpReq.Body = ioutil.NopCloser(bytes.NewReader(jsonBuf))
 	httpReq.URL = client.BaseURL
 	httpReq.URL.Path = path
 
