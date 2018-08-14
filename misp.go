@@ -39,9 +39,9 @@ type SampleFile struct {
 // SampleUpload ... XXX
 type SampleUpload struct {
 	Files        []SampleFile `json:"files,omitempty"`
-	Distribution int          `json:"distribution,omitempty"`
+	Distribution string       `json:"distribution,omitempty"`
 	Comment      string       `json:"comment,omitempty"` // comment field of any attribute created
-	EventID      int          `json:"event_id,omitempty"`
+	EventID      string       `json:"event_id,omitempty"`
 	ToIDS        bool         `json:"to_ids,omitempty"`
 	Category     string       `json:"category,omitempty"`
 	Info         string       `json:"info,omitempty"` // event info field if no event ID supplied
@@ -173,7 +173,8 @@ type UploadResponse struct {
 func (client *Client) UploadSample(sample *SampleUpload) (*UploadResponse, error) {
 	req := &Request{Request: sample}
 
-	httpResp, err := client.Post("/events/upload_sample/", req)
+	url := fmt.Sprintf("/events/upload_sample/%s", sample.EventID)
+	httpResp, err := client.Post(url, req)
 	if err != nil {
 		return nil, err
 	}

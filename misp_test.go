@@ -180,8 +180,8 @@ func Test_UploadSample_Failed(t *testing.T) {
 		Files: []SampleFile{
 			{Filename: "foo", Data: "bar"},
 		},
-		Distribution: 5,
-		EventID:      3,
+		Distribution: "5",
+		EventID:      "3",
 		Comment:      "foobar",
 		ToIDS:        false,
 		Category:     "toto",
@@ -208,8 +208,8 @@ func Test_UploadSample(t *testing.T) {
 		Files: []SampleFile{
 			{Filename: "foo", Data: "bar"},
 		},
-		Distribution: 2,
-		EventID:      3,
+		Distribution: "2",
+		EventID:      "3",
 		Comment:      "foobar",
 		ToIDS:        false,
 		Category:     "toto",
