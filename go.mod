@@ -1,1 +1,1 @@
-module github.com/nbareil/mispgo
+module github.com/simsor/mispgo
