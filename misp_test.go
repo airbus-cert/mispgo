@@ -1,11 +1,14 @@
 package misp
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -248,4 +251,31 @@ func Test_UploadSample(t *testing.T) {
 			t.Errorf("Users.Get returned %+v, want %+v", user, want)
 		}
 	*/
+}
+
+func Test_DownloadSample(t *testing.T) {
+	setup()
+
+	mux.HandleFunc("/attributes/downloadAttachment/download/1234",
+		func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "GET")
+
+			w.Write([]byte{0xAB, 0xCD, 0xEF, 0x13, 0x37})
+		})
+
+	err := client.DownloadSample(1234, "test_DownloadSample.bin")
+	if err != nil {
+		t.Errorf("DownloadSample returned an error: %s", err)
+	}
+	defer os.Remove("test_DownloadSample.bin")
+
+	result, err := ioutil.ReadFile("test_DownloadSample.bin")
+	if err != nil {
+		t.Errorf("ReadFile returned an error: %s", err)
+	}
+
+	expected := []byte{0xAB, 0xCD, 0xEF, 0x13, 0x37}
+	if !bytes.Equal(expected, result) {
+		t.Errorf("Wrong download:\n\texpected %#v\n\tgot %#v", expected, result)
+	}
 }

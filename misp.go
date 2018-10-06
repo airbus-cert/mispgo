@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 )
 
@@ -212,6 +214,37 @@ func (client *Client) UploadSample(sample *SampleUpload) (*UploadResponse, error
 	resp.ID = int(id)
 
 	return &resp, nil
+}
+
+// DownloadSample downloads a malware sample to the given file
+func (client *Client) DownloadSample(sampleID int, filename string) error {
+	path := fmt.Sprintf("/attributes/downloadAttachment/download/%d", sampleID)
+
+	httpReq := &http.Request{}
+	httpReq.Method = "GET"
+	httpReq.URL = client.BaseURL
+	httpReq.URL.Path = path
+
+	httpReq.Header = make(http.Header)
+	httpReq.Header.Set("Authorization", client.APIKey)
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("Error downloading sample: %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	outFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		return fmt.Errorf("Error opening %s: %s", filename, err.Error())
+	}
+
+	_, err = io.Copy(outFile, resp.Body)
+	if err != nil {
+		return fmt.Errorf("Error writing to %s: %s", filename, err.Error())
+	}
+
+	return nil
 }
 
 // Get is a wrapper to Do()
