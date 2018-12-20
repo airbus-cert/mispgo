@@ -253,6 +253,43 @@ func Test_UploadSample(t *testing.T) {
 	*/
 }
 
+func Test_AddEventTag(t *testing.T) {
+	setup()
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+
+		d := json.NewDecoder(r.Body)
+
+		var got EventTag
+		if err := d.Decode(&got); err != nil {
+			t.Errorf("Cannot decode json EventTag request: %s", err)
+		}
+
+		if got.Event.ID != "666" {
+			t.Errorf("Decoding EventTag.Event.ID failed, expected 666 got %#v", got.Event.ID)
+		}
+
+		if got.Event.Tag != "TLP:AMBER" {
+			t.Errorf("Decoding EventTag.Event.Tag failed, expected TLP:AMBER got %#v", got.Event.Tag)
+		}
+	}
+	mux.HandleFunc("/events/addTag", handler)
+	mux.HandleFunc("/events/removeTag", handler)
+
+	_, err := client.AddEventTag("666", "TLP:AMBER")
+	if err != nil {
+		t.Errorf("Error while adding EventTag: %#v", err)
+	}
+
+	_, err = client.RemoveEventTag("666", "TLP:AMBER")
+	if err != nil {
+		t.Errorf("Error while removing EventTag: %#v", err)
+	}
+}
+
+//func Test_RemoveEventTag
+
 func Test_DownloadSample(t *testing.T) {
 	setup()
 

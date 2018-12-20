@@ -161,6 +161,37 @@ func (client *Client) PublishEvent(eventID string, email bool) (*Response, error
 	return nil, err
 }
 
+type InnerEventTag struct {
+	ID  string `json:"id"`
+	Tag string `json:"tag"`
+}
+
+type EventTag struct {
+	Event InnerEventTag `json:"Event"`
+}
+
+func (client *Client) eventTagManagement(path string, eventID string, tag string) (*Response, error) {
+	req := Request{
+		Request: EventTag{
+			Event: InnerEventTag{
+				ID:  eventID,
+				Tag: tag,
+			},
+		},
+	}
+
+	_, err := client.Post(path, req)
+	return nil, err
+}
+
+func (client *Client) RemoveEventTag(eventID string, tag string) (*Response, error) {
+	return client.eventTagManagement("/events/removeTag", eventID, tag)
+}
+
+func (client *Client) AddEventTag(eventID string, tag string) (*Response, error) {
+	return client.eventTagManagement("/events/addTag", eventID, tag)
+}
+
 // AddSighting ... XXX
 func (client *Client) AddSighting(s *Sighting) (*Response, error) {
 	httpResp, err := client.Post("/sightings/add/", Request{Request: s})
