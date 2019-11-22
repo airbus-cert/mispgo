@@ -170,7 +170,13 @@ type EventTag struct {
 	Event InnerEventTag `json:"Event"`
 }
 
-func (client *Client) eventTagManagement(path string, eventID string, tag string) (*Response, error) {
+type eventTagResponse struct {
+	Saved        bool   `json:"saved"`
+	State        string `json:"success"`
+	CheckPublish bool   `json:"check_publish"`
+}
+
+func (client *Client) eventTagManagement(path string, eventID string, tag string) (bool, error) {
 	req := Request{
 		Request: EventTag{
 			Event: InnerEventTag{
@@ -180,15 +186,24 @@ func (client *Client) eventTagManagement(path string, eventID string, tag string
 		},
 	}
 
-	_, err := client.Post(path, req)
-	return nil, err
+	resp, err := client.Post(path, req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var tagResponse eventTagResponse
+	d := json.NewDecoder(resp.Body)
+	d.Decode(&tagResponse)
+
+	return tagResponse.Saved, err
 }
 
-func (client *Client) RemoveEventTag(eventID string, tag string) (*Response, error) {
+func (client *Client) RemoveEventTag(eventID string, tag string) (bool, error) {
 	return client.eventTagManagement("/events/removeTag", eventID, tag)
 }
 
-func (client *Client) AddEventTag(eventID string, tag string) (*Response, error) {
+func (client *Client) AddEventTag(eventID string, tag string) (bool, error) {
 	return client.eventTagManagement("/events/addTag", eventID, tag)
 }
 

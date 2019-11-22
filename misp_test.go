@@ -253,37 +253,51 @@ func Test_UploadSample(t *testing.T) {
 	*/
 }
 
+type responseEventTag struct {
+	Request EventTag `json:"Request"`
+}
+
 func Test_AddEventTag(t *testing.T) {
 	setup()
-
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "POST")
 
 		d := json.NewDecoder(r.Body)
 
-		var got EventTag
+		var got responseEventTag
 		if err := d.Decode(&got); err != nil {
 			t.Errorf("Cannot decode json EventTag request: %s", err)
 		}
 
-		if got.Event.ID != "666" {
-			t.Errorf("Decoding EventTag.Event.ID failed, expected 666 got %#v", got.Event.ID)
+		if got.Request.Event.ID != "666" {
+			t.Errorf("Decoding EventTag.Event.ID failed, expected 666 got %#v", got.Request.Event.ID)
 		}
 
-		if got.Event.Tag != "TLP:AMBER" {
-			t.Errorf("Decoding EventTag.Event.Tag failed, expected TLP:AMBER got %#v", got.Event.Tag)
+		if got.Request.Event.Tag != "TLP:AMBER" {
+			t.Errorf("Decoding EventTag.Event.Tag failed, expected TLP:AMBER got %#v", got.Request.Event.Tag)
 		}
 	}
-	mux.HandleFunc("/events/addTag", handler)
-	mux.HandleFunc("/events/removeTag", handler)
 
-	_, err := client.AddEventTag("666", "TLP:AMBER")
-	if err != nil {
+	handlerAdd := func(w http.ResponseWriter, r *http.Request) {
+		handler(w, r)
+		fmt.Fprint(w, `{"saved":true,"success":"Tag added.","check_publish":true}`)
+	}
+
+	handlerRemove := func(w http.ResponseWriter, r *http.Request) {
+		handler(w, r)
+		fmt.Fprint(w, `{"saved":true,"success":"Tag removed.","check_publish":true}`)
+	}
+
+	mux.HandleFunc("/events/addTag", handlerAdd)
+	mux.HandleFunc("/events/removeTag", handlerRemove)
+
+	saved, err := client.AddEventTag("666", "TLP:AMBER")
+	if err != nil && !saved {
 		t.Errorf("Error while adding EventTag: %#v", err)
 	}
 
-	_, err = client.RemoveEventTag("666", "TLP:AMBER")
-	if err != nil {
+	saved, err = client.RemoveEventTag("666", "TLP:AMBER")
+	if err != nil && !saved {
 		t.Errorf("Error while removing EventTag: %#v", err)
 	}
 }
