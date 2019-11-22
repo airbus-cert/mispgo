@@ -316,3 +316,73 @@ func Test_DownloadSample(t *testing.T) {
 		t.Errorf("Wrong download:\n\texpected %#v\n\tgot %#v", expected, result)
 	}
 }
+
+func TestAddAttribute(t *testing.T) {
+	setup()
+
+	attr := Attribute{
+		Value:    "1.2.3.4",
+		Type:     "ip-dst",
+		Category: "Network activity",
+	}
+
+	mux.HandleFunc("/attributes/add/1234",
+		func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "POST")
+			d := json.NewDecoder(r.Body)
+
+			var got Attribute
+			if err := d.Decode(&got); err != nil {
+				t.Errorf("Cannot decode json AddAttribute request: %s", err)
+			}
+
+			if !reflect.DeepEqual(got, attr) {
+				t.Errorf("AddAttribute returned %+v, want %+v", got, attr)
+			}
+
+			fmt.Fprint(w, `
+			{
+				"Attribute": {
+					"id": "3993961",
+					"event_id": "1234",
+					"object_id": "0",
+					"object_relation": null,
+					"category": "Network activity",
+					"type": "ip-dst",
+					"value1": "1.2.3.4",
+					"value2": "",
+					"to_ids": true,
+					"uuid": "5dd790ad-b0ec-4b8a-bc97-2ed00a3a5cd9",
+					"timestamp": "1574408365",
+					"distribution": "5",
+					"sharing_group_id": "0",
+					"comment": "",
+					"deleted": false,
+					"disable_correlation": false,
+					"value": "1.2.3.4"
+				}
+			}
+			`)
+		})
+
+	newAttr, err := client.AddAttribute("1234", attr)
+	if err != nil {
+		t.Errorf("AddAttribute returned an error: %s", err)
+	}
+
+	if newAttr.EventID != "1234" {
+		t.Errorf("Returned EventID attribute does not match: got %v, expecting %v", newAttr.EventID, attr.EventID)
+	}
+
+	if newAttr.Value != attr.Value {
+		t.Errorf("Returned Value attribute does not match: got %v, expecting %v", newAttr.Value, attr.Value)
+	}
+
+	if newAttr.Category != attr.Category {
+		t.Errorf("Returned Category attribute does not match: got %v, expecting %v", newAttr.Category, attr.Category)
+	}
+
+	if newAttr.Type != attr.Type {
+		t.Errorf("Returned Type attribute does not match: got %v, expecting %v", newAttr.Type, attr.Type)
+	}
+}

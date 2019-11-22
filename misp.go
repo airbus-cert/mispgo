@@ -288,6 +288,28 @@ func (client *Client) Post(path string, req interface{}) (*http.Response, error)
 	return client.Do("POST", path, req)
 }
 
+type attributeResponse struct {
+	Attribute Attribute `json:"Attribute"`
+}
+
+// AddAttribute adds an attribute to an event
+func (client *Client) AddAttribute(eventID string, attr Attribute) (*Attribute, error) {
+	urlPath := fmt.Sprintf("/attributes/add/%s", eventID)
+	resp, err := client.Post(urlPath, attr)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var attrResp attributeResponse
+	decoder := json.NewDecoder(resp.Body)
+	if err = decoder.Decode(&attrResp); err != nil {
+		return nil, fmt.Errorf("Could not unmarshal response: %s", err)
+	}
+
+	return &attrResp.Attribute, nil
+}
+
 // SearchAttribute ...
 func (client *Client) SearchAttribute(q *AttributeQuery) ([]Attribute, error) {
 	httpResp, err := client.Post("/attributes/restSearch/json/", Request{Request: q})
